@@ -27,6 +27,11 @@ const OrderShema = new mongoose.Schema({
     saveInfo: { type: Boolean, default: false },
   },
   paymentMethod: { type: String, enum: ["stripe", "cash"], required: true },
+    status: {
+    type: String,
+    enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+    default: "pending",
+  }, // admin choose to make order confirmed , shipped , delivered  based on payment , if client payed his order than status changed 
   paymentIntentId: { type: String }, // only for Stripe
   paymentStatus: { type: String, enum: ["pending", "succeeded", "failed"],default: "pending",},
   date: {
