@@ -306,8 +306,6 @@ app.post('/Addtocart', fetchUser, async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });
-
-
 // create endpoind for fetch cart data into the cart page
 app.get('/getCart', fetchUser, async (req, res) => {
     try {
@@ -467,12 +465,117 @@ app.get('/Category/:category', async (req, res) => {
       res.status(500).json({ errors: "Failed to fetch products" });
     }
   });
-
-
-
-
+// Fetch Profile Info api 
+app.get('/ClientInfo/:userId',async(req,res)=>{
+    try {
+        const{userId} =req.params;
+        console.log("Requested user:",userId);
+        const user = await Users.findById(userId);
+        if (!user) 
+        {
+            res.status(404).json({status:false,message:"user not found with this id"});    
+        }
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({errrors:"Failed to fetch user"})
+    }
+})
+//update client name,email, password
+app.put("/updateProfile/:id", async (req, res) => {
+  const { name, email, oldPassword, newPassword, confirmPassword } = req.body;
+  const userId = req.params.id;
+  try {
+    const user = await Users.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    // Check if old password matches
+    if (oldPassword && user.password !== oldPassword) {
+      return res.status(400).json({ message: "Old password is incorrect" });
+    }
+    // If changing password, validate new password match
+    if (newPassword || confirmPassword) {
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ message: "New passwords do not match" });
+      }
+      user.password = newPassword;
+    }
+    // Update name if provided
+    if (name) user.name = name;
+    // Update email if provided
+    if (email) user.email = email;
+    await user.save();
+    res.status(200).json({ message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+// Fetch Order Info by user id api 
+app.get('/Order/:userId',async(req,res)=>{
+    try {
+        const{userId}=req.params;
+        const orders= await Order.find({userId:userId}).sort({date:-1})
+        if (!orders || orders.length=== 0) 
+        {
+            res.status(404).json({status:false,message:"this user hasn't placed any order"});
+        }
+        res.status(200).json({success:true,orders:[orders]})
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+})
+// Cancel order by ID
+app.put("/cancel/:id",fetchUser,async(req,res)=>{
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) {
+            return res.status(404).json({message:"Order not found"});
+        }
+        //check if the order is already shipped or delivered
+        if (["shipped","delivered","cancelled"].includes(order.status)) 
+        {
+              return res
+                .status(400)
+                .json({
+                  success: false,
+                  message: `Cannot cancel an order that is already ${order.status}`,
+                });  
+        }
+        order.status ="cancelled";
+        order.paymentStatus="failed";
+        await order.save();
+        res.status(200).json({ success: true,message:"Order Cancelled successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+})
+// Fetch cancelled orders by user ID
+app.get("/cancelled-orders/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log("Requested user:", userId);
+    // Fetch only cancelled orders
+    const cancelledOrders = await Order.find({
+      userId,
+      status: "cancelled",
+    }).sort({ date: -1 });
+    if (!cancelledOrders || cancelledOrders.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "This user hasn't cancelled any orders.",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      cancelledOrders: cancelledOrders,
+    });
+  } catch (error) {
+    console.error("Error fetching cancelled orders:", error);
+    res.status(500).json({ error: "Failed to fetch cancelled orders." });
+  }
+});
 
   
+
 
 app.listen(port,(error)=>{
     if(!error){
