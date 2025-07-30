@@ -111,7 +111,16 @@ app.post('/addProduct', async (req, res) => {
         });
     }
 });
-
+//Fetch Product By id
+app.get("/Product/:id",async(req,res)=>{
+    try {
+        const {id} = req.params;
+        const Product = await products.find({id});
+        res.status(200).json(Product);
+    } catch (error) {
+        res.status(500).json({errors:"failed to fetch product"})
+    }
+})
 // remove product
 app.post('/removeProduct',async (req,res) => {
     await products.findOneAndDelete({id: req.body.id});
