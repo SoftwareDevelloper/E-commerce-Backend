@@ -10,9 +10,9 @@ const ProductsShema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  description:{
-    type:String,
-    required:true,
+  description: {
+    type: String,
+    required: true,
   },
   image: {
     type: String,
@@ -41,11 +41,20 @@ const ProductsShema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
+    enum: [
+      "Phones", // electronics types
+      "Tv",
+      "Games",
+      "Kids", // clothes types
+      "Men's",
+      "Women's",
+    ],
   },
+
   color: [
     {
-      name: { type: String, required: true },
-      hex: { type: String, required: true },
+      name: { type: String},
+      hex: { type: String},
     },
   ],
 
@@ -69,17 +78,38 @@ const ProductsShema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  Size: {
+    type: [String],
+    enum: ["XS", "S", "M", "L", "XL"],
+    default: ["XS", "S", "M", "L", "XL"],
+    validate: {
+      validator: function (val) {
+        const requiredSizes = ["XS", "S", "M", "L", "XL"];
+        return (
+          Array.isArray(val) &&
+          val.length === requiredSizes.length &&
+          requiredSizes.every((size) => val.includes(size))
+        );
+      },
+      message: "Size must include all of: XS, S, M, L, XL",
+    },
+  },
 });
+
+
 // 2. Add pre-save hook to calculate discounted price
 ProductsShema.pre("save", function (next) {
   if (this.solde && this.oldprice) {
     const discount = (this.oldprice * this.solde) / 100;
     this.newPrice = Math.round((this.oldprice - discount) * 100) / 100; // round to 2 decimal places
   } else {
-    this.newPrice = this.oldprice;
+    this.newPrice = 0;
   }
   next();
-});
+}
+
+);
+
 // 3. Export the model (correctly)
 
 module.exports = mongoose.model("products",ProductsShema);
